@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Тест алгоритма оптимизации</title>
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      button {
+        background: #2c3e50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #e8f4f8;
+        border-radius: 5px;
+        display: none;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🚚 Тест алгоритма оптимизации маршрутов</h1>
+
+    <p>
+      ID заказа в базе данных:
+      <input type="number" id="orderId" value="2" style="width: 100px" />
+      <small>(Ваш заказ имеет ID=2)</small>
+    </p>
+    <p>
+      Адрес загрузки:
+      <input type="text" id="addr1" value="Москва, ул. Тверская, д.1" style="width: 100%" />
+    </p>
+    <p>
+      Адрес доставки:
+      <input
+        type="text"
+        id="addr2"
+        value="Санкт-Петербург, Невский пр., д.50"
+        style="width: 100%" />
+    </p>
+
+    <button onclick="optimize()">🔍 Рассчитать оптимальный маршрут</button>
+
+    <div id="result" class="result"></div>
+
+    <script>
+      // Получаем CSRF-токен из cookies
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + '=') {
+              cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      async function optimize() {
+        const orderId = document.getElementById('orderId').value;
+        const resultDiv = document.getElementById('result');
+
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'result';
+        resultDiv.innerHTML = '<p>⏳ Выполняется оптимизация...</p>';
+
+        try {
+          const response = await fetch('/api/routes/calculate/', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken'),
+            },
+            body: JSON.stringify({
+              order_id: parseInt(orderId),
+              algorithm: 'genetic',
+            }),
+          });
+
+          const data = await response.json();
+
+          console.log('Ответ от сервера:', data);
+
+          if (response.ok) {
+            resultDiv.className = 'result success';
+            const optimizedOrder = data.optimized_order || [];
+            resultDiv.innerHTML = `
+                        <h3>✅ Результат:</h3>
+                        <p><strong>Расстояние:</strong> ${data.total_distance} км</p>
+                        <p><strong>Алгоритм:</strong> ${data.algorithm || 'Генетический'}</p>
+                        <p><strong>ID маршрута:</strong> ${data.route_id}</p>
+                        <p><strong>Порядок маршрута:</strong></p>
+                        <ol>${optimizedOrder.map((addr) => `<li>${addr}</li>`).join('')}</ol>
+                    `;
+          } else {
+            throw new Error(data.detail || data.message || 'Ошибка сервера');
+          }
+        } catch (error) {
+          console.error('Ошибка:', error);
+          resultDiv.className = 'result error';
+          resultDiv.innerHTML = `
+                    <h3>❌ Ошибка:</h3>
+                    <p>${error.message}</p>
+                    <p>Проверьте:</p>
+                    <ul>
+                        <li>Что заказ с ID ${document.getElementById('orderId').value} существует в базе данных</li>
+                        <li>Что сервер запущен (python manage.py runserver)</li>
+                    </ul>
+                    <p>Откройте консоль браузера (F12) для деталей</p>
+                `;
+        }
+      }
+    </script>
+  </body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Logistics AI - Оптимизация маршрутов</title>
+    <style>
+      body {
+        font-family: Arial;
+        max-width: 800px;
+        margin: 50px auto;
+        padding: 20px;
+      }
+      input,
+      textarea {
+        width: 100%;
+        padding: 8px;
+        margin: 10px 0;
+      }
+      button {
+        background: #2c3e50;
+        color: white;
+        padding: 10px 20px;
+        border: none;
+        cursor: pointer;
+      }
+      .result {
+        margin-top: 20px;
+        padding: 15px;
+        background: #ecf0f1;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🚚 Система оптимизации маршрутов</h1>
+
+    <h3>Новый заказ</h3>
+    <input type="text" id="clientName" placeholder="Клиент" />
+    <textarea id="pickupAddress" placeholder="Адрес загрузки"></textarea>
+    <textarea id="deliveryAddress" placeholder="Адрес доставки"></textarea>
+
+    <select id="algorithm">
+      <option value="genetic">Генетический алгоритм</option>
+      <option value="branch_and_bound">Метод ветвей и границ</option>
+    </select>
+
+    <button onclick="optimizeRoute()">Рассчитать маршрут</button>
+
+    <div id="result" class="result" style="display: none"></div>
+
+    <script>
+      async function optimizeRoute() {
+        // Тестовый заказ
+        const response = await fetch('/api/routes/calculate/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            order_id: 1, // упрощенно
+            algorithm: document.getElementById('algorithm').value,
+          }),
+        });
+
+        const data = await response.json();
+        const resultDiv = document.getElementById('result');
+        resultDiv.style.display = 'block';
+        resultDiv.innerHTML = `
+                <h3>✅ Оптимальный маршрут:</h3>
+                <p>Расстояние: ${data.total_distance} км</p>
+                <p>Алгоритм: ${data.algorithm}</p>
+                <p>Порядок точек: ${data.optimized_order.join(' → ')}</p>
+            `;
+      }
+    </script>
+  </body>
+</html>

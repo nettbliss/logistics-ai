@@ -1,0 +1,667 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OptiRoute — интеллектуальная логистика</title>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
+      rel="stylesheet" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Inter', sans-serif;
+        background: #f0f2f5;
+        color: #1a1a2e;
+      }
+      .header {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        color: white;
+        padding: 24px 32px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .header-content {
+        max-width: 1600px;
+        margin: 0 auto;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .logo h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+      }
+      .logo p {
+        font-size: 0.8rem;
+        opacity: 0.7;
+        margin-top: 4px;
+      }
+      .badge {
+        background: rgba(255, 255, 255, 0.1);
+        padding: 8px 16px;
+        border-radius: 100px;
+        font-size: 0.8rem;
+        font-weight: 500;
+      }
+      .main-container {
+        max-width: 1600px;
+        margin: 24px auto;
+        padding: 0 24px;
+      }
+      .two-columns {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .column {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+      }
+      .column-left {
+        flex: 1;
+        min-width: 420px;
+      }
+      .column-right {
+        flex: 2;
+        min-width: 500px;
+      }
+      .form-section {
+        padding: 24px;
+        border-bottom: 1px solid #eef2f6;
+      }
+      .form-section:last-child {
+        border-bottom: none;
+      }
+      .section-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-bottom: 20px;
+      }
+      .form-group {
+        margin-bottom: 20px;
+      }
+      .form-group label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #334155;
+        margin-bottom: 6px;
+      }
+      .form-group input {
+        width: 100%;
+        padding: 12px 14px;
+        border: 1px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-family: inherit;
+        background: #fafbfc;
+      }
+      .form-group input:focus {
+        outline: none;
+        border-color: #3b82f6;
+        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        background: white;
+      }
+      .waypoints-list {
+        margin-bottom: 12px;
+      }
+      .waypoint-item {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 10px;
+        align-items: center;
+      }
+      .waypoint-item input {
+        flex: 1;
+      }
+      .waypoint-order {
+        width: 28px;
+        height: 28px;
+        background: #f1f5f9;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+      }
+      .btn-icon {
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 8px;
+        font-size: 1rem;
+      }
+      .btn-icon-danger {
+        color: #ef4444;
+      }
+      .btn-icon-danger:hover {
+        background: #fef2f2;
+      }
+      .btn-add {
+        width: 100%;
+        background: #f1f5f9;
+        border: 1px dashed #cbd5e1;
+        border-radius: 12px;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .btn-add:hover {
+        background: #eef2ff;
+        border-color: #3b82f6;
+        color: #3b82f6;
+      }
+      .btn-primary {
+        width: 100%;
+        background: #0f172a;
+        border: none;
+        border-radius: 14px;
+        padding: 14px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      .btn-primary:hover {
+        background: #1e293b;
+        transform: translateY(-1px);
+      }
+      .btn-secondary {
+        width: 100%;
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 14px;
+        padding: 14px;
+        font-size: 0.95rem;
+        font-weight: 500;
+        color: #334155;
+        cursor: pointer;
+        margin-top: 12px;
+      }
+      .btn-secondary:hover {
+        background: #f8fafc;
+        border-color: #cbd5e1;
+      }
+      .result-card {
+        background: #f8fafc;
+        border-radius: 16px;
+        padding: 20px;
+        margin-top: 20px;
+        display: none;
+      }
+      .result-card.success {
+        display: block;
+        border-left: 4px solid #22c55e;
+      }
+      .result-card.error {
+        display: block;
+        border-left: 4px solid #ef4444;
+        background: #fef2f2;
+      }
+      .result-stats {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-top: 16px;
+        padding-top: 16px;
+        border-top: 1px solid #e2e8f0;
+      }
+      .stat {
+        flex: 1;
+      }
+      .stat-label {
+        font-size: 0.7rem;
+        text-transform: uppercase;
+        font-weight: 600;
+        color: #64748b;
+      }
+      .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-top: 4px;
+      }
+      .route-list {
+        background: white;
+        border-radius: 12px;
+        padding: 16px;
+        margin-top: 16px;
+      }
+      .route-step {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 12px 0;
+        border-bottom: 1px solid #f1f5f9;
+      }
+      .route-step:last-child {
+        border-bottom: none;
+      }
+      .step-marker {
+        width: 28px;
+        height: 28px;
+        background: #f1f5f9;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: #475569;
+        flex-shrink: 0;
+      }
+      .step-marker.start {
+        background: #22c55e;
+        color: white;
+      }
+      .step-marker.end {
+        background: #ef4444;
+        color: white;
+      }
+      .step-address {
+        font-size: 0.85rem;
+        color: #334155;
+        line-height: 1.4;
+        word-break: break-word;
+      }
+      .comparison-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 16px;
+      }
+      .comparison-table th,
+      .comparison-table td {
+        text-align: left;
+        padding: 12px 8px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .comparison-table th {
+        font-weight: 600;
+        color: #475569;
+        font-size: 0.75rem;
+        text-transform: uppercase;
+      }
+      .economy-row {
+        background: #ecfdf5;
+      }
+      .economy-row td {
+        font-weight: 600;
+        color: #059669;
+      }
+      .btn-pdf {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #ef4444;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-size: 0.85rem;
+        font-weight: 500;
+        margin-top: 16px;
+        transition: background 0.2s;
+      }
+      .btn-pdf:hover {
+        background: #dc2626;
+      }
+      .map-container {
+        height: 500px;
+        width: 100%;
+        background: #f1f5f9;
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+      }
+      #map {
+        width: 100%;
+        height: 100%;
+      }
+      .map-status {
+        padding: 12px 20px;
+        background: #f8fafc;
+        font-size: 0.8rem;
+        color: #64748b;
+        border-top: 1px solid #e2e8f0;
+      }
+      @media (max-width: 1100px) {
+        .two-columns {
+          flex-direction: column;
+        }
+        .column-left,
+        .column-right {
+          min-width: auto;
+        }
+        .result-stats {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <div class="header-content">
+        <div class="logo">
+          <h1>OptiRoute</h1>
+          <p>Интеллектуальная логистическая платформа</p>
+        </div>
+        <div class="badge">Генетическая оптимизация</div>
+      </div>
+    </div>
+
+    <div class="main-container">
+      <div class="two-columns">
+        <div class="column column-left">
+          <div class="form-section">
+            <div class="section-title">Параметры заказа</div>
+            <div class="form-group">
+              <label>ID заказа в системе</label>
+              <input type="number" id="orderId" placeholder="Введите ID" />
+            </div>
+          </div>
+          <div class="form-section">
+            <div class="section-title">Маршрут</div>
+            <div class="form-group">
+              <label>Начальная точка (загрузка)</label>
+              <input
+                type="text"
+                id="pickupAddress"
+                placeholder="Город, улица, дом"
+                value="Москва, ул. Тверская, 1" />
+            </div>
+            <div class="form-group">
+              <label>Промежуточные точки</label>
+              <div class="waypoints-list" id="waypointsContainer">
+                <div class="waypoint-item">
+                  <span class="waypoint-order">1</span
+                  ><input
+                    type="text"
+                    class="waypoint"
+                    placeholder="Адрес точки"
+                    value="Тверь, ул. Революции, 12" /><button
+                    class="btn-icon btn-icon-danger"
+                    onclick="removeWaypoint(this)">
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <button class="btn-add" onclick="addWaypoint()"><span>+</span> Добавить точку</button>
+            </div>
+            <div class="form-group">
+              <label>Конечная точка (доставка)</label>
+              <input
+                type="text"
+                id="deliveryAddress"
+                placeholder="Город, улица, дом"
+                value="Воронеж, ул. Ломоносова, 92" />
+            </div>
+          </div>
+          <div class="form-section">
+            <button class="btn-primary" onclick="optimize()">Рассчитать оптимальный маршрут</button>
+            <button class="btn-secondary" onclick="compare()">
+              Сравнить с последовательным маршрутом
+            </button>
+          </div>
+          <div class="form-section">
+            <div id="result" class="result-card"></div>
+            <div id="compareResult" class="result-card"></div>
+          </div>
+        </div>
+        <div class="column column-right">
+          <div class="map-container"><div id="map"></div></div>
+          <div class="map-status" id="mapStatus">Введите адреса и нажмите «Рассчитать»</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let map = null;
+      let apiKey = '8c37cabe-5660-4967-9266-0b2af004ea7d';
+
+      function addWaypoint() {
+        const container = document.getElementById('waypointsContainer');
+        const count = container.children.length + 1;
+        const div = document.createElement('div');
+        div.className = 'waypoint-item';
+        div.innerHTML = `<span class="waypoint-order">${count}</span><input type="text" class="waypoint" placeholder="Адрес точки"><button class="btn-icon btn-icon-danger" onclick="removeWaypoint(this)">✕</button>`;
+        container.appendChild(div);
+      }
+
+      function removeWaypoint(btn) {
+        btn.parentElement.remove();
+        document.querySelectorAll('.waypoint-item').forEach((item, idx) => {
+          item.querySelector('.waypoint-order').textContent = idx + 1;
+        });
+      }
+
+      function getCookie(name) {
+        let value = null;
+        if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + '=') {
+              value = decodeURIComponent(cookie.substring(name.length + 1));
+              break;
+            }
+          }
+        }
+        return value;
+      }
+
+      function geocodeAddress(address) {
+        return new Promise((resolve, reject) => {
+          const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
+          fetch(url)
+            .then((response) => response.json())
+            .then((data) => {
+              try {
+                const pos = data.response.GeoObjectCollection.featureMember[0].GeoObject.Point.pos;
+                const [lon, lat] = pos.split(' ');
+                resolve([parseFloat(lat), parseFloat(lon)]);
+              } catch (e) {
+                reject(new Error(`Адрес не найден: ${address}`));
+              }
+            })
+            .catch(() => reject(new Error(`Ошибка геокодирования: ${address}`)));
+        });
+      }
+
+      async function displayRouteOnMap(addresses) {
+        const statusDiv = document.getElementById('mapStatus');
+        statusDiv.innerHTML = 'Загрузка координат...';
+        try {
+          const coords = [];
+          for (const addr of addresses) {
+            coords.push(await geocodeAddress(addr));
+          }
+          if (!map) {
+            map = new ymaps.Map('map', {
+              center: coords[0],
+              zoom: 10,
+              controls: ['zoomControl', 'fullscreenControl'],
+            });
+          }
+          map.geoObjects.removeAll();
+          coords.forEach((coord, i) => {
+            let color = 'blue';
+            if (i === 0) color = 'green';
+            if (i === coords.length - 1) color = 'red';
+            map.geoObjects.add(
+              new ymaps.Placemark(
+                coord,
+                { balloonContent: addresses[i] },
+                { preset: `islands#${color}Icon` },
+              ),
+            );
+          });
+          map.geoObjects.add(
+            new ymaps.Polyline(
+              coords,
+              {},
+              { strokeColor: '#3b82f6', strokeWidth: 4, strokeOpacity: 0.8 },
+            ),
+          );
+          const points = coords.map((c) => new ymaps.Placemark(c));
+          const collection = new ymaps.GeoObjectCollection();
+          points.forEach((p) => collection.add(p));
+          const bounds = collection.getBounds();
+          if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
+          else map.setCenter(coords[0], 10);
+          statusDiv.innerHTML = `Маршрут построен | ${coords.length} точек | Линия по прямой — демонстрационная`;
+        } catch (err) {
+          statusDiv.innerHTML = `Ошибка: ${err.message}`;
+        }
+      }
+
+      async function optimize() {
+        const orderId = document.getElementById('orderId').value;
+        const pickup = document.getElementById('pickupAddress').value;
+        const delivery = document.getElementById('deliveryAddress').value;
+        if (!orderId || !pickup || !delivery) {
+          alert('Заполните все поля');
+          return;
+        }
+        const waypoints = Array.from(document.querySelectorAll('.waypoint'))
+          .map((i) => i.value.trim())
+          .filter((w) => w.length > 0);
+        const resultDiv = document.getElementById('result');
+        resultDiv.className = 'result-card';
+        resultDiv.innerHTML = 'Выполняется оптимизация...';
+        try {
+          const response = await fetch('/api/routes/calculate/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({
+              order_id: parseInt(orderId),
+              algorithm: 'genetic',
+              waypoints: waypoints,
+              pickup_address: pickup,
+              delivery_address: delivery,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            resultDiv.className = 'result-card success';
+            let html = `<div style="font-weight:600; margin-bottom:12px;">Оптимальный маршрут</div>
+                        <div class="result-stats">
+                            <div class="stat"><div class="stat-label">Расстояние</div><div class="stat-value">${data.total_distance} км</div></div>
+                            <div class="stat"><div class="stat-label">Алгоритм</div><div class="stat-value">Генетический</div></div>
+                            <div class="stat"><div class="stat-label">Точек</div><div class="stat-value">${data.points_count}</div></div>
+                        </div>
+                        <div class="route-list">`;
+            data.optimized_order.forEach((addr, i) => {
+              let markerClass = '',
+                markerText = (i + 1).toString();
+              if (i === 0) {
+                markerClass = 'start';
+                markerText = 'A';
+              }
+              if (i === data.optimized_order.length - 1) {
+                markerClass = 'end';
+                markerText = 'B';
+              }
+              html += `<div class="route-step"><div class="step-marker ${markerClass}">${markerText}</div><div class="step-address">${escapeHtml(addr)}</div></div>`;
+            });
+            html += `</div>`;
+            if (data.route_id)
+              html += `<a href="/documents/download/${data.route_id}/" class="btn-pdf" target="_blank">Скачать путевой лист (PDF)</a>`;
+            resultDiv.innerHTML = html;
+            await displayRouteOnMap(data.optimized_order);
+          } else {
+            throw new Error(data.message || 'Ошибка');
+          }
+        } catch (err) {
+          resultDiv.className = 'result-card error';
+          resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Ошибка</div><div>${err.message}</div>`;
+        }
+      }
+
+      async function compare() {
+        const orderId = document.getElementById('orderId').value;
+        const pickup = document.getElementById('pickupAddress').value;
+        const delivery = document.getElementById('deliveryAddress').value;
+        if (!orderId || !pickup || !delivery) {
+          alert('Заполните ID заказа, начальную и конечную точки');
+          return;
+        }
+        const waypoints = Array.from(document.querySelectorAll('.waypoint'))
+          .map((i) => i.value.trim())
+          .filter((w) => w.length > 0);
+        const resultDiv = document.getElementById('compareResult');
+        resultDiv.className = 'result-card';
+        resultDiv.innerHTML = 'Выполняется сравнение...';
+        try {
+          const response = await fetch('/api/routes/compare/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            body: JSON.stringify({
+              order_id: parseInt(orderId),
+              waypoints: waypoints,
+              pickup_address: pickup,
+              delivery_address: delivery,
+            }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            resultDiv.className = 'result-card success';
+            resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:12px;">Сравнительный анализ маршрутов</div>
+                        <table class="comparison-table"><thead><tr><th>Параметр</th><th>Последовательный</th><th>Оптимизированный</th></tr></thead>
+                        <tbody><tr><td>Расстояние, км</td><td>${data.naive_distance}</td><td>${data.optimized_distance}</td></tr>
+                        <tr class="economy-row"><td>Экономия, км</td><td colspan="2">${data.economy_km} км (${data.economy_percent}%)</td></tr>
+                        <tr class="economy-row"><td>Экономия топлива, руб</td><td colspan="2">${data.fuel_saved_rub} руб</td></tr>
+                        </tbody></table>
+                        <div style="margin-top:16px;"><div style="font-weight:500; margin-bottom:8px;">Оптимальный порядок</div>
+                        <div class="route-list">${data.optimized_order.map((a, i) => `<div class="route-step"><div class="step-marker ${i === 0 ? 'start' : i === data.optimized_order.length - 1 ? 'end' : ''}">${i + 1}</div><div class="step-address">${escapeHtml(a)}</div></div>`).join('')}</div></div>`;
+          } else {
+            throw new Error(data.message || 'Ошибка');
+          }
+        } catch (err) {
+          resultDiv.className = 'result-card error';
+          resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Ошибка</div><div>${err.message}</div>`;
+        }
+      }
+
+      function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function (m) {
+          if (m === '&') return '&amp;';
+          if (m === '<') return '&lt;';
+          if (m === '>') return '&gt;';
+          return m;
+        });
+      }
+
+      ymaps.ready(() => {
+        map = new ymaps.Map('map', {
+          center: [55.751574, 37.573856],
+          zoom: 10,
+          controls: ['zoomControl', 'fullscreenControl'],
+        });
+        document.getElementById('mapStatus').innerHTML = 'Карта загружена';
+      });
+    </script>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=8c37cabe-5660-4967-9266-0b2af004ea7d"></script>
+  </body>
+</html>
