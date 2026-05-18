@@ -2,11 +2,16 @@ from django.contrib import admin
 from django.urls import reverse
 from django.utils.html import format_html
 from .models import Vehicle, Cargo, Order
+from django.contrib.admin import AdminSite
+from django.template.response import TemplateResponse
+from django.db.models import Count
+from datetime import datetime
 
 
 @admin.register(Vehicle)
 class VehicleAdmin(admin.ModelAdmin):
-    list_display = ('license_plate', 'type_badge', 'capacity_kg', 'fuel_consumption', 'current_driver', 'is_active')
+    list_display = ('id', 'license_plate', 'type_badge', 'capacity_kg', 'fuel_consumption', 'current_driver', 'is_active')
+    list_display_links = ('id', 'license_plate')
     list_filter = ('type', 'is_active')
     search_fields = ('license_plate', 'current_driver__username')
     list_editable = ('is_active',)
@@ -35,7 +40,8 @@ class VehicleAdmin(admin.ModelAdmin):
 
 @admin.register(Cargo)
 class CargoAdmin(admin.ModelAdmin):
-    list_display = ('name', 'weight_kg', 'volume_m3', 'hazardous_badge', 'temp_badge')
+    list_display = ('id', 'name', 'weight_kg', 'volume_m3', 'hazardous_badge', 'temp_badge')
+    list_display_links = ('id', 'name')
     list_filter = ('is_hazardous', 'requires_temperature')
     search_fields = ('name',)
     list_per_page = 20
@@ -55,7 +61,8 @@ class CargoAdmin(admin.ModelAdmin):
 
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ('order_number', 'client_link', 'cargo', 'vehicle', 'status_badge', 'distance_info', 'created_at')
+    list_display = ('id', 'order_number', 'client_link', 'cargo', 'vehicle', 'status_badge', 'distance_info', 'created_at')
+    list_display_links = ('id', 'order_number')
     list_filter = ('status', 'created_at')
     search_fields = ('order_number', 'client__username', 'client__company_name')
     list_per_page = 20
@@ -110,10 +117,6 @@ class OrderAdmin(admin.ModelAdmin):
         return '—'
     distance_info.short_description = 'Расстояние'
 
-from django.contrib.admin import AdminSite
-from django.template.response import TemplateResponse
-from django.db.models import Count
-from datetime import datetime
 
 class LogisticsAdminSite(AdminSite):
     site_header = 'OptiRoute Логистика'
@@ -123,7 +126,6 @@ class LogisticsAdminSite(AdminSite):
     def index(self, request, extra_context=None):
         from .models import Order
         
-        # Статистика
         total_orders = Order.objects.count()
         in_transit = Order.objects.filter(status='in_transit').count()
         delivered_today = Order.objects.filter(status='delivered', updated_at__date=datetime.now().date()).count()
