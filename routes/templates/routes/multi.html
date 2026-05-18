@@ -7,6 +7,7 @@
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,500;14..32,600;14..32,700&display=swap"
       rel="stylesheet" />
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=8c37cabe-5660-4967-9266-0b2af004ea7d&lang=ru_RU"></script>
     <style>
       * {
         margin: 0;
@@ -384,22 +385,14 @@
             <div class="section-title">Маршрут</div>
             <div class="form-group">
               <label>Начальная точка (загрузка)</label>
-              <input
-                type="text"
-                id="pickupAddress"
-                placeholder="Город, улица, дом"
-                value="Москва, ул. Тверская, 1" />
+              <input type="text" id="pickupAddress" placeholder="Город, улица, дом" />
             </div>
             <div class="form-group">
               <label>Промежуточные точки</label>
               <div class="waypoints-list" id="waypointsContainer">
                 <div class="waypoint-item">
                   <span class="waypoint-order">1</span
-                  ><input
-                    type="text"
-                    class="waypoint"
-                    placeholder="Адрес точки"
-                    value="Тверь, ул. Революции, 12" /><button
+                  ><input type="text" class="waypoint" placeholder="Адрес точки" /><button
                     class="btn-icon btn-icon-danger"
                     onclick="removeWaypoint(this)">
                     ✕
@@ -410,11 +403,7 @@
             </div>
             <div class="form-group">
               <label>Конечная точка (доставка)</label>
-              <input
-                type="text"
-                id="deliveryAddress"
-                placeholder="Город, улица, дом"
-                value="Воронеж, ул. Ломоносова, 92" />
+              <input type="text" id="deliveryAddress" placeholder="Город, улица, дом" />
             </div>
           </div>
           <div class="form-section">
@@ -437,7 +426,28 @@
 
     <script>
       let map = null;
-      let apiKey = '8c37cabe-5660-4967-9266-0b2af004ea7d';
+      let accessToken = null;
+
+      async function getToken() {
+        try {
+          const response = await fetch('/api/token/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'admin2', password: 'admin123' }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            accessToken = data.access;
+            return accessToken;
+          } else {
+            console.error('Ошибка авторизации:', data);
+            return null;
+          }
+        } catch (error) {
+          console.error('Ошибка при получении токена:', error);
+          return null;
+        }
+      }
 
       function addWaypoint() {
         const container = document.getElementById('waypointsContainer');
@@ -455,83 +465,89 @@
         });
       }
 
-      function getCookie(name) {
-        let value = null;
-        if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === name + '=') {
-              value = decodeURIComponent(cookie.substring(name.length + 1));
-              break;
-            }
-          }
-        }
-        return value;
-      }
-
-      function geocodeAddress(address) {
+      async function geocodeAddress(address) {
         return new Promise((resolve, reject) => {
-          const url = `https://geocode-maps.yandex.ru/1.x/?apikey=${apiKey}&geocode=${encodeURIComponent(address)}&format=json&results=1`;
-          fetch(url)
-            .then((response) => response.json())
-            .then((data) => {
-              try {
-                const pos = data.response.GeoObjectCollection.featureMember[0].GeoObject.Point.pos;
-                const [lon, lat] = pos.split(' ');
-                resolve([parseFloat(lat), parseFloat(lon)]);
-              } catch (e) {
+          if (typeof ymaps === 'undefined') {
+            reject(new Error('Карта не загружена'));
+            return;
+          }
+          ymaps.geocode(address, { results: 1 }).then(
+            (res) => {
+              const geo = res.geoObjects.get(0);
+              if (geo) {
+                resolve(geo.geometry.getCoordinates());
+              } else {
                 reject(new Error(`Адрес не найден: ${address}`));
               }
-            })
-            .catch(() => reject(new Error(`Ошибка геокодирования: ${address}`)));
+            },
+            (err) => reject(err),
+          );
         });
       }
 
       async function displayRouteOnMap(addresses) {
         const statusDiv = document.getElementById('mapStatus');
         statusDiv.innerHTML = 'Загрузка координат...';
+
+        if (typeof ymaps === 'undefined') {
+          statusDiv.innerHTML = 'Карта не загружена. Проверьте API-ключ.';
+          return;
+        }
+
         try {
-          const coords = [];
+          const coordinates = [];
           for (const addr of addresses) {
-            coords.push(await geocodeAddress(addr));
+            const coords = await geocodeAddress(addr);
+            coordinates.push(coords);
           }
+
           if (!map) {
             map = new ymaps.Map('map', {
-              center: coords[0],
+              center: coordinates[0],
               zoom: 10,
               controls: ['zoomControl', 'fullscreenControl'],
             });
+          } else {
+            map.geoObjects.removeAll();
           }
-          map.geoObjects.removeAll();
-          coords.forEach((coord, i) => {
+
+          coordinates.forEach((coord, index) => {
             let color = 'blue';
-            if (i === 0) color = 'green';
-            if (i === coords.length - 1) color = 'red';
+            if (index === 0) color = 'green';
+            if (index === coordinates.length - 1) color = 'red';
             map.geoObjects.add(
               new ymaps.Placemark(
                 coord,
-                { balloonContent: addresses[i] },
+                {
+                  balloonContent: addresses[index],
+                },
                 { preset: `islands#${color}Icon` },
               ),
             );
           });
+
           map.geoObjects.add(
             new ymaps.Polyline(
-              coords,
+              coordinates,
               {},
-              { strokeColor: '#3b82f6', strokeWidth: 4, strokeOpacity: 0.8 },
+              {
+                strokeColor: '#3b82f6',
+                strokeWidth: 4,
+                strokeOpacity: 0.8,
+              },
             ),
           );
-          const points = coords.map((c) => new ymaps.Placemark(c));
+
+          const points = coordinates.map((c) => new ymaps.Placemark(c));
           const collection = new ymaps.GeoObjectCollection();
           points.forEach((p) => collection.add(p));
           const bounds = collection.getBounds();
           if (bounds) map.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50 });
-          else map.setCenter(coords[0], 10);
-          statusDiv.innerHTML = `Маршрут построен | ${coords.length} точек | Линия по прямой — демонстрационная`;
+          else map.setCenter(coordinates[0], 10);
+
+          statusDiv.innerHTML = `Маршрут построен | ${coordinates.length} точек`;
         } catch (err) {
-          statusDiv.innerHTML = `Ошибка: ${err.message}`;
+          statusDiv.innerHTML = `Ошибка карты: ${err.message}`;
         }
       }
 
@@ -539,29 +555,46 @@
         const orderId = document.getElementById('orderId').value;
         const pickup = document.getElementById('pickupAddress').value;
         const delivery = document.getElementById('deliveryAddress').value;
+
         if (!orderId || !pickup || !delivery) {
-          alert('Заполните все поля');
+          alert('Заполните ID заказа, начальную и конечную точки');
           return;
         }
+
         const waypoints = Array.from(document.querySelectorAll('.waypoint'))
           .map((i) => i.value.trim())
           .filter((w) => w.length > 0);
+
         const resultDiv = document.getElementById('result');
         resultDiv.className = 'result-card';
-        resultDiv.innerHTML = 'Выполняется оптимизация...';
+        resultDiv.innerHTML = '<p>Выполняется оптимизация...</p>';
+
+        // Получаем токен
+        const token = await getToken();
+        if (!token) {
+          resultDiv.className = 'result-card error';
+          resultDiv.innerHTML =
+            '<h3>Ошибка авторизации</h3><p>Не удалось получить токен доступа</p>';
+          return;
+        }
+
         try {
-          const response = await fetch('/api/routes/calculate/', {
+          const response = await fetch('/api/optimize/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               order_id: parseInt(orderId),
-              algorithm: 'genetic',
               waypoints: waypoints,
               pickup_address: pickup,
               delivery_address: delivery,
             }),
           });
+
           const data = await response.json();
+
           if (response.ok) {
             resultDiv.className = 'result-card success';
             let html = `<div style="font-weight:600; margin-bottom:12px;">Оптимальный маршрут</div>
@@ -571,9 +604,10 @@
                             <div class="stat"><div class="stat-label">Точек</div><div class="stat-value">${data.points_count}</div></div>
                         </div>
                         <div class="route-list">`;
+
             data.optimized_order.forEach((addr, i) => {
-              let markerClass = '',
-                markerText = (i + 1).toString();
+              let markerClass = '';
+              let markerText = (i + 1).toString();
               if (i === 0) {
                 markerClass = 'start';
                 markerText = 'A';
@@ -582,19 +616,20 @@
                 markerClass = 'end';
                 markerText = 'B';
               }
-              html += `<div class="route-step"><div class="step-marker ${markerClass}">${markerText}</div><div class="step-address">${escapeHtml(addr)}</div></div>`;
+              html += `<div class="route-step"><div class="step-marker ${markerClass}">${markerText}</div><div class="step-address">${addr}</div></div>`;
             });
             html += `</div>`;
-            if (data.route_id)
+            if (data.route_id) {
               html += `<a href="/documents/download/${data.route_id}/" class="btn-pdf" target="_blank">Скачать путевой лист (PDF)</a>`;
+            }
             resultDiv.innerHTML = html;
             await displayRouteOnMap(data.optimized_order);
           } else {
-            throw new Error(data.message || 'Ошибка');
+            throw new Error(data.message || data.error || 'Ошибка сервера');
           }
         } catch (err) {
           resultDiv.className = 'result-card error';
-          resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Ошибка</div><div>${err.message}</div>`;
+          resultDiv.innerHTML = `<h3>Ошибка</h3><p>${err.message}</p>`;
         }
       }
 
@@ -602,20 +637,35 @@
         const orderId = document.getElementById('orderId').value;
         const pickup = document.getElementById('pickupAddress').value;
         const delivery = document.getElementById('deliveryAddress').value;
+
         if (!orderId || !pickup || !delivery) {
           alert('Заполните ID заказа, начальную и конечную точки');
           return;
         }
+
         const waypoints = Array.from(document.querySelectorAll('.waypoint'))
           .map((i) => i.value.trim())
           .filter((w) => w.length > 0);
+
         const resultDiv = document.getElementById('compareResult');
         resultDiv.className = 'result-card';
-        resultDiv.innerHTML = 'Выполняется сравнение...';
+        resultDiv.innerHTML = '<p>Выполняется сравнение...</p>';
+
+        const token = await getToken();
+        if (!token) {
+          resultDiv.className = 'result-card error';
+          resultDiv.innerHTML =
+            '<h3>Ошибка авторизации</h3><p>Не удалось получить токен доступа</p>';
+          return;
+        }
+
         try {
-          const response = await fetch('/api/routes/compare/', {
+          const response = await fetch('/api/compare/', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCookie('csrftoken') },
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+            },
             body: JSON.stringify({
               order_id: parseInt(orderId),
               waypoints: waypoints,
@@ -623,45 +673,48 @@
               delivery_address: delivery,
             }),
           });
+
           const data = await response.json();
+
           if (response.ok) {
             resultDiv.className = 'result-card success';
-            resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:12px;">Сравнительный анализ маршрутов</div>
-                        <table class="comparison-table"><thead><tr><th>Параметр</th><th>Последовательный</th><th>Оптимизированный</th></tr></thead>
-                        <tbody><tr><td>Расстояние, км</td><td>${data.naive_distance}</td><td>${data.optimized_distance}</td></tr>
-                        <tr class="economy-row"><td>Экономия, км</td><td colspan="2">${data.economy_km} км (${data.economy_percent}%)</td></tr>
-                        <tr class="economy-row"><td>Экономия топлива, руб</td><td colspan="2">${data.fuel_saved_rub} руб</td></tr>
-                        </tbody></table>
+            resultDiv.innerHTML = `
+                        <div style="font-weight:600; margin-bottom:12px;">Сравнительный анализ маршрутов</div>
+                        <table class="comparison-table">
+                            <thead><tr><th>Параметр</th><th>Последовательный</th><th>Оптимизированный</th></tr></thead>
+                            <tbody>
+                                <tr><td>Расстояние, км</td><td>${data.naive_distance}</td><td>${data.optimized_distance}</td></tr>
+                                <tr class="economy-row"><td>Экономия, км</td><td colspan="2">${data.economy_km} км (${data.economy_percent}%)</td></tr>
+                                <tr class="economy-row"><td>Экономия топлива, руб</td><td colspan="2">${data.fuel_saved_rub} руб</td></tr>
+                            </tbody>
+                        </table>
                         <div style="margin-top:16px;"><div style="font-weight:500; margin-bottom:8px;">Оптимальный порядок</div>
-                        <div class="route-list">${data.optimized_order.map((a, i) => `<div class="route-step"><div class="step-marker ${i === 0 ? 'start' : i === data.optimized_order.length - 1 ? 'end' : ''}">${i + 1}</div><div class="step-address">${escapeHtml(a)}</div></div>`).join('')}</div></div>`;
+                        <div class="route-list">${data.optimized_order.map((a, i) => `<div class="route-step"><div class="step-marker ${i === 0 ? 'start' : i === data.optimized_order.length - 1 ? 'end' : ''}">${i + 1}</div><div class="step-address">${a}</div></div>`).join('')}</div></div>
+                    `;
           } else {
-            throw new Error(data.message || 'Ошибка');
+            throw new Error(data.message || data.error || 'Ошибка сервера');
           }
         } catch (err) {
           resultDiv.className = 'result-card error';
-          resultDiv.innerHTML = `<div style="font-weight:600; margin-bottom:8px;">Ошибка</div><div>${err.message}</div>`;
+          resultDiv.innerHTML = `<h3>Ошибка</h3><p>${err.message}</p>`;
         }
       }
 
-      function escapeHtml(str) {
-        if (!str) return '';
-        return str.replace(/[&<>]/g, function (m) {
-          if (m === '&') return '&amp;';
-          if (m === '<') return '&lt;';
-          if (m === '>') return '&gt;';
-          return m;
-        });
-      }
-
-      ymaps.ready(() => {
-        map = new ymaps.Map('map', {
-          center: [55.751574, 37.573856],
-          zoom: 10,
-          controls: ['zoomControl', 'fullscreenControl'],
-        });
-        document.getElementById('mapStatus').innerHTML = 'Карта загружена';
+      window.addEventListener('load', function () {
+        if (typeof ymaps !== 'undefined') {
+          ymaps.ready(() => {
+            map = new ymaps.Map('map', {
+              center: [55.751574, 37.573856],
+              zoom: 10,
+              controls: ['zoomControl', 'fullscreenControl'],
+            });
+            document.getElementById('mapStatus').innerHTML = 'Карта загружена';
+          });
+        } else {
+          document.getElementById('mapStatus').innerHTML =
+            'Карта не загружена. Проверьте API-ключ.';
+        }
       });
     </script>
-    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=8c37cabe-5660-4967-9266-0b2af004ea7d"></script>
   </body>
 </html>

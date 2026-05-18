@@ -1,9 +1,7 @@
-
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.lib.units import mm
 from datetime import datetime
 import os
 from django.conf import settings
@@ -13,21 +11,6 @@ def generate_waybill(order, route):
     """
     Генерация путевого листа в PDF с поддержкой кириллицы
     """
-    
-    # Регистрируем шрифт с поддержкой кириллицы
-    # Используем стандартный шрифт Windows Arial или Times New Roman
-    try:
-        # Для Windows
-        font_path = "C:/Windows/Fonts/arial.ttf"
-        if not os.path.exists(font_path):
-            # Альтернативный путь
-            font_path = "C:/Windows/Fonts/times.ttf"
-        pdfmetrics.registerFont(TTFont('Arial', font_path))
-        font_name = 'Arial'
-    except:
-        # Если шрифт не найден, используем стандартный (латинница)
-        font_name = 'Helvetica'
-    
     # Создаём папку media если её нет
     media_dir = settings.MEDIA_ROOT
     if not os.path.exists(media_dir):
@@ -36,10 +19,21 @@ def generate_waybill(order, route):
     filename = f"waybill_{order.order_number}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
     filepath = os.path.join(media_dir, filename)
     
+    # Регистрируем шрифт с поддержкой кириллицы
+    try:
+        # Для Windows
+        font_path = "C:/Windows/Fonts/arial.ttf"
+        if not os.path.exists(font_path):
+            font_path = "C:/Windows/Fonts/times.ttf"
+        pdfmetrics.registerFont(TTFont('Arial', font_path))
+        font_name = 'Arial'
+    except:
+        font_name = 'Helvetica'
+    
     c = canvas.Canvas(filepath, pagesize=A4)
     width, height = A4
     
-    # Используем зарегистрированный шрифт
+    # Шапка
     c.setFont(font_name, 18)
     c.drawString(50, height - 50, "ПУТЕВОЙ ЛИСТ")
     
@@ -56,15 +50,16 @@ def generate_waybill(order, route):
     
     c.setFont(font_name, 10)
     
-    # Получаем статус на русском
-    status_rus = {
+    # Статус на русском
+    status_names = {
         'pending': 'Ожидает',
         'loading': 'Загружается',
         'in_transit': 'В пути',
         'delivered': 'Доставлен',
         'delayed': 'Задержан',
-        'damaged': 'Поврежден'
-    }.get(order.status, order.status)
+        'damaged': 'Повреждён',
+    }
+    status_rus = status_names.get(order.status, order.status)
     
     lines = [
         f"Номер заказа: {order.order_number}",
@@ -74,23 +69,19 @@ def generate_waybill(order, route):
         "2. ИНФОРМАЦИЯ О ГРУЗЕ",
         f"Наименование: {order.cargo.name}",
         f"Вес: {order.cargo.weight_kg} кг",
-        f"Объем: {order.cargo.volume_m3} м3",
+        f"Объём: {order.cargo.volume_m3} м3",
         f"Опасный груз: {'Да' if order.cargo.is_hazardous else 'Нет'}",
         "",
         "3. ИНФОРМАЦИЯ О ТРАНСПОРТЕ",
     ]
     
     if order.vehicle:
-        type_rus = {
-            'truck': 'Грузовик',
-            'van': 'Фургон',
-            'refrigerator': 'Рефрижератор'
-        }.get(order.vehicle.type, order.vehicle.type)
-        
+        type_names = {'truck': 'Грузовик', 'van': 'Фургон', 'refrigerator': 'Рефрижератор'}
+        type_rus = type_names.get(order.vehicle.type, order.vehicle.type)
         lines.extend([
             f"Госномер: {order.vehicle.license_plate}",
             f"Тип: {type_rus}",
-            f"Грузоподъемность: {order.vehicle.capacity_kg} кг",
+            f"Грузоподъёмность: {order.vehicle.capacity_kg} кг",
             f"Расход топлива: {order.vehicle.fuel_consumption} л/100км",
         ])
     else:
@@ -119,13 +110,9 @@ def generate_waybill(order, route):
             c.showPage()
             y = height - 50
             c.setFont(font_name, 10)
-        
         # Обрезаем слишком длинные адреса
-        if len(addr) > 80:
-            addr = addr[:77] + "..."
-        
-        icon = "1" if i == 1 else ("X" if i == len(route.waypoints) else str(i))
-        c.drawString(50, y, f"{i}. {addr}")
+        display_addr = addr[:80] + "..." if len(addr) > 80 else addr
+        c.drawString(50, y, f"{i}. {display_addr}")
         y -= 15
     
     y -= 10
@@ -137,7 +124,7 @@ def generate_waybill(order, route):
     
     c.drawString(50, y, f"Общее расстояние: {route.total_distance_km} км")
     y -= 15
-    c.drawString(50, y, f"Расчетное время: {route.estimated_time_min} мин")
+    c.drawString(50, y, f"Расчётное время: {route.estimated_time_min} мин")
     y -= 15
     c.drawString(50, y, f"Затраты на топливо: {route.fuel_cost} руб")
     y -= 15
