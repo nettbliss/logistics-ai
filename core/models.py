@@ -69,13 +69,14 @@ class Order(models.Model):
     def __str__(self):
         return f"Заказ {self.order_number} - {self.client.username}"
     
-    class RouteHistory(models.Model): """История рассчитанных маршрутов для аналитики и обучения"""
+class RouteHistory(models.Model):
+    """История рассчитанных маршрутов для аналитики и обучения"""
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='history_routes')
     optimized_order = models.JSONField('Оптимальный порядок', default=list)
     total_distance_km = models.FloatField('Расстояние, км')
-    algorithm_used = models.CharField('Алгоритм', max_length=50)
-    calculation_time_ms = models.FloatField('Время расчета, мс')
-    economy_percent = models.FloatField('Экономия, %', default=0)
+    algorithm_used = models.CharField('Алгоритм', max_length=50, default='genetic')
+    calculation_time_ms = models.FloatField('Время расчета, мс', default=0.0)
+    economy_percent = models.FloatField('Экономия, %', default=0.0)
     created_at = models.DateTimeField(auto_now_add=True)
     
     class Meta:
