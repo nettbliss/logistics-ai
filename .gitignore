@@ -1,20 +1,41 @@
 # Python
 __pycache__/
-*.pyc
+*.py[cod]
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+
+# Virtual environment
 venv/
 env/
-.env
+ENV/
 
 # Database
 db.sqlite3
+*.db
 
-# Media
+# Media files
 media/
 staticfiles/
+
+# Environment variables
+.env
+.env.local
 
 # IDE
 .vscode/
 .idea/
+*.swp
+*.swo
 
 # Logs
 *.log
+
+# Docker
+*.pid
+
+# OS
+.DS_Store
+Thumbs.db
