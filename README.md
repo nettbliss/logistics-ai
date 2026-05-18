@@ -55,20 +55,19 @@ _Документация API через Swagger_
 ## Быстрый старт
 
 **Локальный запуск:**
-
-git clone https://github.com/nettbliss/logistics-ai.git
-cd logistics-ai
-python -m venv venv
-venv\Scripts\activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py createsuperuser
-python manage.py runserver
+git clone https://github.com/nettbliss/logistics-ai.git  
+cd logistics-ai  
+python -m venv venv  
+venv\Scripts\activate  
+pip install -r requirements.txt  
+python manage.py migrate  
+python manage.py createsuperuser  
+python manage.py runserver  
 После запуска открой в браузере: http://127.0.0.1:8000/multi/
 
 **Запуск через Docker:**
 
-docker build -t optiroute .
+docker build -t optiroute .  
 docker run -p 8000:8000 optiroute
 
 ## API
@@ -81,12 +80,12 @@ POST /api/token/
 
 # Оптимизация маршрута:
 
-POST /api/optimize/
-{
-"order_id": 1,
-"pickup_address": "Москва, ул. Тверская, 1",
-"delivery_address": "Санкт-Петербург, Невский пр., 50",
-"waypoints": ["Тверь, ул. Революции, 12"]
+POST /api/optimize/  
+{  
+"order_id": 1,  
+"pickup_address": "Москва, ул. Тверская, 1",  
+"delivery_address": "Санкт-Петербург, Невский пр., 50",  
+"waypoints": ["Тверь, ул. Революции, 12"]  
 }
 
 Полная документация доступна по адресу /swagger/
