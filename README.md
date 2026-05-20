@@ -105,6 +105,15 @@ python manage.py runserver
 docker build -t optiroute .  
 docker run -p 8000:8000 optiroute
 
+## Ссылки
+
+После запуска проекта (`python manage.py runserver` или `docker run -p 8000:8000 optiroute`) доступны следующие страницы:
+
+- **Главная страница**: http://127.0.0.1:8000/multi/
+- **Панель данных**: http://127.0.0.1:8000/data/
+- **Админ-панель**: http://127.0.0.1:8000/admin/ (admin / admin123)
+- **API документация**: http://127.0.0.1:8000/swagger/
+
 ## API
 
 Эндпоинты доступны после получения JWT-токена.
