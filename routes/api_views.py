@@ -1,4 +1,3 @@
-
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
@@ -24,7 +23,7 @@ class TestAPIView(APIView):
 
 class OrderViewSet(viewsets.ModelViewSet):
     """API для управления заказами"""
-    queryset = Order.objects.all()
+    queryset = Order.objects.select_related('client', 'cargo', 'vehicle').prefetch_related('history_routes')
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
 
@@ -37,14 +36,14 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 class RouteViewSet(viewsets.ReadOnlyModelViewSet):
     """API для просмотра маршрутов"""
-    queryset = Route.objects.all()
+    queryset = Route.objects.select_related('order', 'vehicle').prefetch_related('order__client')
     serializer_class = RouteSerializer
     permission_classes = [IsAuthenticated]
 
 
 class RouteHistoryViewSet(viewsets.ReadOnlyModelViewSet):
     """API для истории маршрутов"""
-    queryset = RouteHistory.objects.all()
+    queryset = RouteHistory.objects.select_related('order')
     serializer_class = RouteHistorySerializer
     permission_classes = [IsAuthenticated]
 
