@@ -1,0 +1,369 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <title>OptiRoute — Данные системы</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: 'Segoe UI', Arial, sans-serif;
+        background: #f0f2f5;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      h1 {
+        color: #0f172a;
+        margin-bottom: 8px;
+      }
+      .subtitle {
+        color: #64748b;
+        margin-bottom: 24px;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #e2e8f0;
+      }
+      .tab {
+        padding: 12px 24px;
+        cursor: pointer;
+        background: white;
+        border: none;
+        font-size: 14px;
+        font-weight: 500;
+        border-radius: 8px 8px 0 0;
+      }
+      .tab.active {
+        background: #0f172a;
+        color: white;
+      }
+
+      .tab-content {
+        display: none;
+        background: white;
+        border-radius: 12px;
+        overflow-x: auto;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      .tab-content.active {
+        display: block;
+      }
+
+      .data-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .data-table th {
+        text-align: left;
+        padding: 14px 16px;
+        background: #f1f5f9;
+        color: #1e293b;
+        font-weight: 600;
+        border-bottom: 2px solid #cbd5e1;
+        border-right: 1px solid #e2e8f0;
+      }
+      .data-table td {
+        text-align: left;
+        padding: 12px 16px;
+        border-bottom: 1px solid #e2e8f0;
+        border-right: 1px solid #f1f5f9;
+        color: #334155;
+      }
+      .data-table th:last-child,
+      .data-table td:last-child {
+        border-right: none;
+      }
+      .data-table tbody tr:hover {
+        background-color: #f8fafc;
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 11px;
+        font-weight: 500;
+      }
+      .status-pending {
+        background: #fef3c7;
+        color: #b45309;
+      }
+      .status-in_transit {
+        background: #dbeafe;
+        color: #1e40af;
+      }
+      .status-delivered {
+        background: #d1fae5;
+        color: #065f46;
+      }
+      .status-delayed {
+        background: #fee2e2;
+        color: #991b1b;
+      }
+
+      .loading {
+        text-align: center;
+        padding: 40px;
+        color: #64748b;
+      }
+      .error {
+        background: #fee2e2;
+        color: #991b1b;
+        padding: 12px;
+        border-radius: 8px;
+        margin-bottom: 16px;
+      }
+      .refresh-btn {
+        background: #0f172a;
+        color: white;
+        border: none;
+        padding: 8px 20px;
+        border-radius: 8px;
+        cursor: pointer;
+        margin-bottom: 16px;
+        font-size: 14px;
+      }
+      .refresh-btn:hover {
+        background: #1e293b;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Панель управления данными</h1>
+      <div class="subtitle">Заказы, транспорт и грузы в системе</div>
+
+      <div class="tabs">
+        <button class="tab active" onclick="showTab('orders')">Заказы</button>
+        <button class="tab" onclick="showTab('vehicles')">Транспорт</button>
+        <button class="tab" onclick="showTab('cargo')">Грузы</button>
+        <button class="tab" onclick="showTab('routes')">Маршруты</button>
+      </div>
+
+      <button class="refresh-btn" onclick="loadCurrentTab()">Обновить данные</button>
+
+      <div id="orders-tab" class="tab-content active"><div class="loading">Загрузка...</div></div>
+      <div id="vehicles-tab" class="tab-content"><div class="loading">Загрузка...</div></div>
+      <div id="cargo-tab" class="tab-content"><div class="loading">Загрузка...</div></div>
+      <div id="routes-tab" class="tab-content"><div class="loading">Загрузка...</div></div>
+    </div>
+
+    <script>
+      let accessToken = null;
+      let currentTab = 'orders';
+
+      async function getToken() {
+        try {
+          const response = await fetch('/api/token/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: 'admin', password: 'admin123' }),
+          });
+          const data = await response.json();
+          if (response.ok) {
+            accessToken = data.access;
+            return accessToken;
+          }
+          return null;
+        } catch (error) {
+          console.error('Ошибка получения токена:', error);
+          return null;
+        }
+      }
+
+      function showTab(tabName) {
+        currentTab = tabName;
+        document.querySelectorAll('.tab').forEach((btn) => btn.classList.remove('active'));
+        document
+          .querySelectorAll('.tab-content')
+          .forEach((content) => content.classList.remove('active'));
+        document.querySelector(`.tab[onclick="showTab('${tabName}')"]`).classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+        loadTabData(tabName);
+      }
+
+      function loadCurrentTab() {
+        loadTabData(currentTab);
+      }
+
+      async function loadTabData(tabName) {
+        const container = document.getElementById(`${tabName}-tab`);
+        container.innerHTML = '<div class="loading">Загрузка...</div>';
+
+        let token = accessToken;
+        if (!token) {
+          token = await getToken();
+        }
+
+        if (!token) {
+          container.innerHTML =
+            '<div class="error">Ошибка авторизации. Не удалось получить токен.</div>';
+          return;
+        }
+
+        let url = '';
+        let headers = [];
+
+        switch (tabName) {
+          case 'orders':
+            url = '/api/orders/';
+            headers = ['ID', 'Номер заказа', 'Клиент', 'Откуда', 'Куда', 'Статус', 'Создан'];
+            break;
+          case 'vehicles':
+            url = '/api/vehicles/';
+            headers = [
+              'ID',
+              'Госномер',
+              'Тип',
+              'Грузоподъемность (кг)',
+              'Расход топлива',
+              'Активен',
+            ];
+            break;
+          case 'cargo':
+            url = '/api/cargo/';
+            headers = ['ID', 'Наименование', 'Вес (кг)', 'Объём (м³)', 'Опасный'];
+            break;
+          case 'routes':
+            url = '/api/routes/';
+            headers = ['ID', 'Заказ', 'Расстояние (км)', 'Время (мин)', 'Алгоритм', 'Дата'];
+            break;
+          default:
+            return;
+        }
+
+        try {
+          const response = await fetch(url, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (response.status === 401) {
+            token = await getToken();
+            if (!token) throw new Error('Не удалось обновить токен');
+            const retryResponse = await fetch(url, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            if (!retryResponse.ok) throw new Error(`Ошибка ${retryResponse.status}`);
+            var data = await retryResponse.json();
+          } else if (!response.ok) {
+            throw new Error(`Ошибка ${response.status}`);
+          } else {
+            var data = await response.json();
+          }
+
+          const results = data.results || data;
+
+          if (!results || results.length === 0) {
+            container.innerHTML = '<div class="loading">Нет данных</div>';
+            return;
+          }
+
+          let html = '<table class="data-table"><thead><tr>';
+          headers.forEach((h) => (html += `<th>${h}</th>`));
+          html += '</tr></thead><tbody>';
+
+          results.forEach((item) => {
+            html += '<tr>';
+            switch (tabName) {
+              case 'orders':
+                let statusText = '';
+                switch (item.status) {
+                  case 'pending':
+                    statusText = 'Ожидает';
+                    break;
+                  case 'loading':
+                    statusText = 'Загружается';
+                    break;
+                  case 'in_transit':
+                    statusText = 'В пути';
+                    break;
+                  case 'delivered':
+                    statusText = 'Доставлен';
+                    break;
+                  case 'delayed':
+                    statusText = 'Задержан';
+                    break;
+                  default:
+                    statusText = item.status;
+                }
+                html += `
+                                <td>${item.id}</td>
+                                <td><strong>${item.order_number || ''}</strong></td>
+                                <td>${item.client || ''}</td>
+                                <td style="max-width:200px;">${(item.pickup_address || '').substring(0, 40)}${(item.pickup_address || '').length > 40 ? '...' : ''}</td>
+                                <td style="max-width:200px;">${(item.delivery_address || '').substring(0, 40)}${(item.delivery_address || '').length > 40 ? '...' : ''}</td>
+                                <td><span class="status-badge status-${item.status}">${statusText}</span></td>
+                                <td>${item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</td>
+                            `;
+                break;
+              case 'vehicles':
+                let typeText = '';
+                switch (item.type) {
+                  case 'truck':
+                    typeText = 'Грузовик';
+                    break;
+                  case 'van':
+                    typeText = 'Фургон';
+                    break;
+                  case 'refrigerator':
+                    typeText = 'Рефрижератор';
+                    break;
+                  default:
+                    typeText = item.type;
+                }
+                html += `
+                                <td>${item.id}</td>
+                                <td><strong>${item.license_plate || ''}</strong></td>
+                                <td>${typeText}</td>
+                                <td>${item.capacity_kg || 0} кг</span></td>
+                                <td>${item.fuel_consumption || 0} л</span></td>
+                                <td>${item.is_active ? 'Да' : 'Нет'}</td>
+                            `;
+                break;
+              case 'cargo':
+                html += `
+                                <td>${item.id}</td>
+                                <td><strong>${item.name || ''}</strong></td>
+                                <td>${item.weight_kg || 0} кг</span></td>
+                                <td>${item.volume_m3 || 0} м³</span></td>
+                                <td>${item.is_hazardous ? 'Да' : 'Нет'}</td>
+                            `;
+                break;
+              case 'routes':
+                let algoText =
+                  item.algorithm_used === 'genetic' ? 'Генетический' : item.algorithm_used;
+                html += `
+                                <td>${item.id}</td>
+                                <td>${item.order || ''}</td>
+                                <td><strong>${item.total_distance_km || 0}</strong> км</span></td>
+                                <td>${item.estimated_time_min || 0} мин</span></td>
+                                <td>${algoText}</td>
+                                <td>${item.created_at ? new Date(item.created_at).toLocaleDateString() : ''}</td>
+                            `;
+                break;
+            }
+            html += '</tr>';
+          });
+          html += '</tbody></table>';
+          container.innerHTML = html;
+        } catch (error) {
+          container.innerHTML = `<div class="error">Ошибка загрузки: ${error.message}</div>`;
+        }
+      }
+
+      window.addEventListener('load', () => {
+        loadTabData('orders');
+      });
+    </script>
+  </body>
+</html>

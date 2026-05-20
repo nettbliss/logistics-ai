@@ -2,8 +2,11 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import viewsets
-from .serializers import OrderSerializer, RouteSerializer, RouteHistorySerializer
-from core.models import Order, RouteHistory
+from .serializers import (
+    OrderSerializer, RouteSerializer, RouteHistorySerializer,
+    VehicleSerializer, CargoSerializer
+)
+from core.models import Order, RouteHistory, Vehicle, Cargo
 from .models import Route
 from .algorithm import optimize_route
 import random
@@ -52,6 +55,20 @@ class RouteHistoryViewSet(viewsets.ReadOnlyModelViewSet):
         if order_id:
             return self.queryset.filter(order_id=order_id)
         return self.queryset
+
+
+class VehicleViewSet(viewsets.ModelViewSet):
+    """API для управления транспортом"""
+    queryset = Vehicle.objects.all()
+    serializer_class = VehicleSerializer
+    permission_classes = [IsAuthenticated]
+
+
+class CargoViewSet(viewsets.ModelViewSet):
+    """API для управления грузами"""
+    queryset = Cargo.objects.all()
+    serializer_class = CargoSerializer
+    permission_classes = [IsAuthenticated]
 
 
 class OptimizeAPIView(APIView):

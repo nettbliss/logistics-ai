@@ -3,7 +3,9 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+
 class Vehicle(models.Model):
+    """Транспортное средство"""
     VEHICLE_TYPES = [
         ('truck', 'Грузовик'),
         ('van', 'Фургон'),
@@ -22,6 +24,7 @@ class Vehicle(models.Model):
 
 
 class Cargo(models.Model):
+    """Груз"""
     name = models.CharField('Наименование', max_length=200)
     weight_kg = models.FloatField('Вес, кг')
     volume_m3 = models.FloatField('Объем, м³')
@@ -33,6 +36,7 @@ class Cargo(models.Model):
 
 
 class Order(models.Model):
+    """Заказ на перевозку"""
     STATUS_CHOICES = [
         ('pending', 'Ожидает'),
         ('loading', 'Загружается'),
@@ -69,6 +73,14 @@ class Order(models.Model):
     def __str__(self):
         return f"Заказ {self.order_number} - {self.client.username}"
     
+    class Meta:
+        indexes = [
+            models.Index(fields=['status']),
+            models.Index(fields=['client', 'status']),
+            models.Index(fields=['created_at']),
+        ]
+
+
 class RouteHistory(models.Model):
     """История рассчитанных маршрутов для аналитики и обучения"""
     order = models.ForeignKey('Order', on_delete=models.CASCADE, related_name='history_routes')
@@ -83,6 +95,10 @@ class RouteHistory(models.Model):
         ordering = ['-created_at']
         verbose_name = 'История маршрута'
         verbose_name_plural = 'Истории маршрутов'
+        indexes = [
+            models.Index(fields=['order', 'created_at']),
+            models.Index(fields=['algorithm_used']),
+        ]
     
     def __str__(self):
         return f"История для {self.order.order_number} от {self.created_at.strftime('%d.%m.%Y')}"
