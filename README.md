@@ -151,6 +151,7 @@ POST /api/optimize/
 ## Тесты
 
 Тесты проходят автоматически при каждом пуше через GitHub Actions.
+![CI/CD Tests](https://github.com/nettbliss/logistics-ai/actions/workflows/tests.yml/badge.svg)
 
 ## Структура проекта
 

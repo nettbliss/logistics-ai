@@ -42,7 +42,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-django pytest-cov
+          pip install pytest pytest-django pytest-cov flake8 bandit
 
       - name: Run migrations
         run: |
@@ -52,7 +52,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest --cov=. --cov-report=xml
+          pytest routes/test_*.py --cov=. --cov-report=xml -v
         env:
           DATABASE_URL: postgres://postgres:postgres@localhost:5432/github_actions
           DJANGO_SETTINGS_MODULE: logistics_system.settings
@@ -67,13 +67,11 @@ jobs:
 
       - name: Lint with flake8
         run: |
-          pip install flake8
           flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
       - name: Check security with bandit
         run: |
-          pip install bandit
           bandit -r . -x ./venv,./tests,./media,./staticfiles -ll
 
   docker-build:
@@ -105,8 +103,8 @@ jobs:
       - name: Check status
         run: |
           if [ "${{ needs.test.result }}" = "success" ] && [ "${{ needs.docker-build.result }}" = "success" ]; then
-            echo "✅ All tests passed!"
+            echo "All tests passed!"
           else
-            echo "❌ Tests failed!"
+            echo "Tests failed!"
             exit 1
           fi
