@@ -13,19 +13,38 @@ import random
 
 
 class TestAPIView(APIView):
-    """Тестовый API для проверки авторизации"""
+    """
+    Тестовый API для проверки авторизации.
+    
+    GET /api/test/ - возвращает статус и данные пользователя.
+    Используется для проверки работоспособности JWT-токена.
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return Response({
             'status': 'ok',
-            'message': 'Вы успешно авторизованы!',
+            'message': 'Вы успешно авторизованы',
             'user': request.user.username
         })
 
 
 class OrderViewSet(viewsets.ModelViewSet):
-    """API для управления заказами"""
+    """
+    Управление заказами.
+    
+    Получение списка заказов, создание нового, редактирование и удаление.
+    
+    Для клиентов (роль 'client') возвращаются только их заказы.
+    Для остальных ролей - все заказы.
+    
+    GET /api/orders/ - список заказов
+    POST /api/orders/ - создание заказа
+    GET /api/orders/{id}/ - детали заказа
+    PUT /api/orders/{id}/ - полное обновление
+    PATCH /api/orders/{id}/ - частичное обновление
+    DELETE /api/orders/{id}/ - удаление
+    """
     queryset = Order.objects.select_related('client', 'cargo', 'vehicle').prefetch_related('history_routes')
     serializer_class = OrderSerializer
     permission_classes = [IsAuthenticated]
@@ -38,14 +57,24 @@ class OrderViewSet(viewsets.ModelViewSet):
 
 
 class RouteViewSet(viewsets.ReadOnlyModelViewSet):
-    """API для просмотра маршрутов"""
+    """
+    Просмотр маршрутов.
+    
+    GET /api/routes/ - список всех маршрутов
+    GET /api/routes/{id}/ - детали конкретного маршрута
+    """
     queryset = Route.objects.select_related('order', 'vehicle').prefetch_related('order__client')
     serializer_class = RouteSerializer
     permission_classes = [IsAuthenticated]
 
 
 class RouteHistoryViewSet(viewsets.ReadOnlyModelViewSet):
-    """API для истории маршрутов"""
+    """
+    История расчётов маршрутов.
+    
+    GET /api/history/ - список всех расчётов
+    GET /api/history/?order_id={id} - фильтрация по заказу
+    """
     queryset = RouteHistory.objects.select_related('order')
     serializer_class = RouteHistorySerializer
     permission_classes = [IsAuthenticated]
@@ -58,21 +87,65 @@ class RouteHistoryViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class VehicleViewSet(viewsets.ModelViewSet):
-    """API для управления транспортом"""
+    """
+    Управление транспортными средствами.
+    
+    GET /api/vehicles/ - список транспорта
+    POST /api/vehicles/ - добавление нового ТС
+    GET /api/vehicles/{id}/ - детали ТС
+    PUT /api/vehicles/{id}/ - редактирование
+    DELETE /api/vehicles/{id}/ - удаление
+    """
     queryset = Vehicle.objects.all()
     serializer_class = VehicleSerializer
     permission_classes = [IsAuthenticated]
 
 
 class CargoViewSet(viewsets.ModelViewSet):
-    """API для управления грузами"""
+    """
+    Управление грузами.
+    
+    GET /api/cargo/ - список грузов
+    POST /api/cargo/ - добавление нового груза
+    GET /api/cargo/{id}/ - детали груза
+    """
     queryset = Cargo.objects.all()
     serializer_class = CargoSerializer
     permission_classes = [IsAuthenticated]
 
 
 class OptimizeAPIView(APIView):
-    """API для оптимизации маршрута"""
+    """
+    Оптимизация маршрута.
+    
+    Принимает ID заказа и опционально обновлённые адреса.
+    Возвращает оптимизированный маршрут и расстояние.
+    
+    Алгоритм:
+    1. Фиксирует первую точку (загрузка) и последнюю (доставка)
+    2. Оптимизирует порядок промежуточных точек
+    3. Рассчитывает расстояния через Яндекс.Геокодер
+    
+    Пример тела запроса:
+    {
+        "order_id": 1,
+        "pickup_address": "Москва, ул. Тверская, 1",
+        "delivery_address": "Санкт-Петербург, Невский пр., 50",
+        "waypoints": ["Тверь, ул. Революции, 12"]
+    }
+    
+    Пример ответа:
+    {
+        "status": "success",
+        "route_id": 5,
+        "total_distance": 712.5,
+        "optimized_order": ["Москва", "Тверь", "Санкт-Петербург"],
+        "algorithm": "genetic",
+        "points_count": 3,
+        "economy_percent": 0,
+        "calculation_time_ms": 125.3
+    }
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -137,7 +210,31 @@ class OptimizeAPIView(APIView):
 
 
 class CompareAPIView(APIView):
-    """API для сравнения обычного и оптимизированного маршрута"""
+    """
+    Сравнение маршрутов.
+    
+    Сравнивает обычный маршрут (по порядку ввода) и оптимизированный.
+    Возвращает экономию в километрах, процентах и рублях.
+    
+    Пример тела запроса:
+    {
+        "order_id": 1,
+        "pickup_address": "Москва, ул. Тверская, 1",
+        "delivery_address": "Санкт-Петербург, Невский пр., 50",
+        "waypoints": ["Тверь, ул. Революции, 12"]
+    }
+    
+    Пример ответа:
+    {
+        "naive_order": ["Москва", "Тверь", "Санкт-Петербург"],
+        "naive_distance": 850.3,
+        "optimized_order": ["Москва", "Тверь", "Санкт-Петербург"],
+        "optimized_distance": 712.5,
+        "economy_km": 137.8,
+        "economy_percent": 16.2,
+        "fuel_saved_rub": 6890.0
+    }
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
